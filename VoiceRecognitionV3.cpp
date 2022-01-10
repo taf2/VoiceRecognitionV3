@@ -1266,6 +1266,8 @@ size_t VR::write(const uint8_t* buffer, size_t size) {
 int VR::begin(unsigned long br, int rx, int tx) {
   Serial2.begin(br, SERIAL_8N2, rx, tx);//BOSS_SERIAL_RX, BOSS_SERIAL_TX);
   Serial2.flush();
+  delay(1000);
+
   int nextParityType = 1;
   int parityTypes[] = { SERIAL_5N1, SERIAL_6N1, SERIAL_7N1, SERIAL_8N1, SERIAL_5N2, SERIAL_6N2, SERIAL_7N2,
                         SERIAL_8N2, SERIAL_5E1, SERIAL_6E1, SERIAL_7E1, SERIAL_8E1, SERIAL_5E2, SERIAL_6E2,
