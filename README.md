@@ -2,6 +2,7 @@
 [START]: #voice-recognition-v3-wip
 
 ## Feature
+- Support for ESP32 boards
 - Recognize maximum 7 voice commands at same time
 - Store maximum 255 records of voice
 - Group control and external group select pin

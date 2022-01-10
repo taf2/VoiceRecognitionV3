@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    VoiceRecognitionV2.cpp
+  * @file    VoiceRecognitionV3.cpp
   * @author  Elechouse Team
   * @version V1.0
   * @date    2013-6-6
@@ -40,10 +40,9 @@ uint8_t hextab[17]="0123456789ABCDEF";
 	@param receivePin --> software serial RX
 		   transmitPin --> software serial TX
 */
-VR::VR(uint8_t receivePin, uint8_t transmitPin) : SoftwareSerial(receivePin, transmitPin)
-{
+VR::VR(uint8_t receivePin, uint8_t transmitPin) {
+  //Serial2.begin(38400, SERIAL_8N1, receivePin, transmitPin);
 	instance = this;
-	SoftwareSerial::begin(38400);
 }
 
 /**
@@ -96,16 +95,16 @@ int VR :: train(uint8_t *records, uint8_t len, uint8_t *buf)
 {
 	int ret;
 	unsigned long start_millis;
-	if(len == 0){
+	if (len == 0) {
 		return -1;
 	}
 	
 	send_pkt(FRAME_CMD_TRAIN, records, len);
 	start_millis = millis();
-	while(1){
+	while (1) {
 		ret = receive_pkt(vr_buf);
-		if(ret>0){
-			switch(vr_buf[2]){
+		if (ret > 0) {
+			switch (vr_buf[2]) {
 				case FRAME_CMD_PROMPT:
 					DBGSTR("Record:\t");
 					DBGFMT(vr_buf[3], DEC);
@@ -113,7 +112,7 @@ int VR :: train(uint8_t *records, uint8_t len, uint8_t *buf)
 					DBGBUF(vr_buf+4, ret-4);
 					break;
 				case FRAME_CMD_TRAIN:
-					if(buf != 0){
+					if (buf != 0) {
 						memcpy(buf, vr_buf+3, vr_buf[1]-2);
 						return vr_buf[1]-2;
 					}
@@ -127,7 +126,7 @@ int VR :: train(uint8_t *records, uint8_t len, uint8_t *buf)
 			}
 			start_millis = millis();
 		}
-		if(millis()-start_millis > 8000){
+		if (millis() - start_millis > 8000) {
 			return -2;
 		}
 	}
@@ -386,16 +385,18 @@ int VR :: checkSignature(uint8_t record, uint8_t *buf)
     @retval  0 --> success
             -1 --> failed
 */
-int VR :: clear()
-{	
+int VR :: clear() {
 	int len;
+
 	send_pkt(FRAME_CMD_CLEAR, 0, 0);
 	len = receive_pkt(vr_buf);
-	if(len<=0){
+  //Serial.printf("received: %d\n", len);
+	if (len<=0) {
 		return -1;
 	}
 
-	if(vr_buf[2] != FRAME_CMD_CLEAR){
+	if (vr_buf[2] != FRAME_CMD_CLEAR) {
+    Serial.println("not frame clear in vr_buf\n");
 		return -1;
 	}
 	//DBGLN("VR Module Cleared");
@@ -419,7 +420,7 @@ int VR :: checkRecognizer(uint8_t *buf)
 	int len;
 	send_pkt(FRAME_CMD_CHECK_BSR, 0, 0);
 	len = receive_pkt(vr_buf);
-	if(len<=0){
+	if (len<=0) {
 		return -1;
 	}
 
@@ -481,7 +482,7 @@ int VR :: checkRecord(uint8_t *buf, uint8_t *records, uint8_t len)
 			
 		}
 		
-	}else if(len>0){
+	} else if (len>0) {
 		ret = cleanDup(vr_buf, records, len);
 		send_pkt(FRAME_CMD_CHECK_TRAIN, vr_buf, ret);
 		ret = receive_pkt(vr_buf);
@@ -1135,9 +1136,9 @@ int VR :: writehex(uint8_t *buf, uint8_t len)
            buf --> data area
            len --> length of buf
 */
-void VR :: send_pkt(uint8_t cmd, uint8_t subcmd, uint8_t *buf, uint8_t len)
-{
-	while(available()){
+void VR :: send_pkt(uint8_t cmd, uint8_t subcmd, uint8_t *buf, uint8_t len) {
+  //Serial.println("send_pkt\n");
+	while (available()) {
 		read();// replace flush();
 	}
 	write(FRAME_HEAD);
@@ -1146,6 +1147,7 @@ void VR :: send_pkt(uint8_t cmd, uint8_t subcmd, uint8_t *buf, uint8_t len)
 	write(subcmd);
 	write(buf, len);
 	write(FRAME_END);
+  Serial2.flush();
 }
 
 /**
@@ -1154,9 +1156,8 @@ void VR :: send_pkt(uint8_t cmd, uint8_t subcmd, uint8_t *buf, uint8_t len)
            buf --> data area
            len --> length of buf
 */
-void VR :: send_pkt(uint8_t cmd, uint8_t *buf, uint8_t len)
-{
-	while(available()){
+void VR :: send_pkt(uint8_t cmd, uint8_t *buf, uint8_t len) {
+	while (available()) {
 		read();// replace flush();
 	}
 	write(FRAME_HEAD);
@@ -1164,6 +1165,7 @@ void VR :: send_pkt(uint8_t cmd, uint8_t *buf, uint8_t len)
 	write(cmd);
 	write(buf, len);
 	write(FRAME_END);
+  Serial2.flush();
 }
 
 /**
@@ -1191,15 +1193,15 @@ void VR :: send_pkt(uint8_t *buf, uint8_t len)
 */
 int VR :: receive_pkt(uint8_t *buf, uint16_t timeout)
 {
-	int ret;
-	ret = receive(buf, 2, timeout);
-	if(ret != 2){
+	int ret = receive(buf, 2, timeout);
+
+	if (ret != 2) {
 		return -1;
 	}
-	if(buf[0] != FRAME_HEAD){
+	if (buf[0] != FRAME_HEAD) {
 		return -2;
 	}
-	if(buf[1] < 2){
+	if (buf[1] < 2) {
 		return -3;
 	}
 	ret = receive(buf+2, buf[1], timeout);
@@ -1224,22 +1226,81 @@ int VR::receive(uint8_t *buf, int len, uint16_t timeout)
   int read_bytes = 0;
   int ret;
   unsigned long start_millis;
-  
+  int delta = 0;
+
   while (read_bytes < len) {
     start_millis = millis();
     do {
       ret = read();
       if (ret >= 0) {
+        //Serial.printf("read more then zero: %d\n", ret);
         break;
-     }
-    } while( (millis()- start_millis ) < timeout);
+      }
+      delta = (millis() - start_millis);
+    } while( delta < timeout);
     
     if (ret < 0) {
+      //Serial.printf("read less than 0 error: %d -> %d < %d\n", ret, delta, timeout);
       return read_bytes;
     }
     buf[read_bytes] = (char)ret;
+    //Serial.printf("read: %x\n", ret);
     read_bytes++;
   }
   
   return read_bytes;
+}
+// serial interface
+int VR::read() {
+  return Serial2.read();
+}
+int VR::available() {
+  return Serial2.available();
+}
+size_t VR::write(uint8_t byte) {
+  return Serial2.write(byte);
+}
+size_t VR::write(const uint8_t* buffer, size_t size) {
+  return Serial2.write(buffer, size);
+}
+int VR::begin(unsigned long br, int rx, int tx) {
+  Serial2.begin(br, SERIAL_8N2, rx, tx);//BOSS_SERIAL_RX, BOSS_SERIAL_TX);
+  Serial2.flush();
+  int nextParityType = 1;
+  int parityTypes[] = { SERIAL_5N1, SERIAL_6N1, SERIAL_7N1, SERIAL_8N1, SERIAL_5N2, SERIAL_6N2, SERIAL_7N2,
+                        SERIAL_8N2, SERIAL_5E1, SERIAL_6E1, SERIAL_7E1, SERIAL_8E1, SERIAL_5E2, SERIAL_6E2,
+                        SERIAL_7E2, SERIAL_8E2, SERIAL_5O1, SERIAL_6O1, SERIAL_7O1, SERIAL_8O1, SERIAL_5O2,
+                        SERIAL_6O2, SERIAL_7O2, SERIAL_8O2 };
+  // rx: 21, tx: 32
+  int nextParityToTry = parityTypes[nextParityType];
+
+  if (this->clear() != 0) {
+    while (1) {
+      Serial.printf("\n\ntry next parity: %d\n", nextParityType);
+      for (int i = 0; i < 2; ++i) {
+        int flip = tx;
+        tx = rx;
+        rx = flip;
+
+        Serial.printf("\ttry rx: %d, tx: %d\n", rx, tx);
+        Serial2.end();
+        Serial2.begin(9600, nextParityToTry, rx, tx);
+        Serial2.flush();
+        if (this->clear() != 0) {
+          Serial.println("Not find VoiceRecognitionModule.");
+          Serial.println("Please check connection and restart Arduino.");
+          delay(1000);
+          if (nextParityType > 24) {
+            nextParityType = 0;
+            Serial.println("Tried all combinations! Failed - double check your tx and rx pins are connected - you need a 5v GPIO so maybe voltage divider is needed?\n");
+            return -1;
+          }
+        } else {
+          break;
+        }
+      }
+      nextParityToTry = parityTypes[nextParityType++];
+    }
+  }
+  return 0;
 }

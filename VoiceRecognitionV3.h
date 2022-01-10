@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    VoiceRecognitionV2.h
+  * @file    VoiceRecognitionV3.h
   * @author  Elechouse Team
   * @version V1.0
   * @date    2013-6-6
@@ -106,8 +106,7 @@
 // #define FRAME_STA_FAILED					(0xFF)
 /***************************************************************************/
 
-
-class VR : public SoftwareSerial{
+class VR {
 public:
 	VR(uint8_t receivePin, uint8_t transmitPin);
 	
@@ -153,12 +152,14 @@ public:
 		GROUP_ALL = 0xFF,
 	}group_t;
 	
+  int begin(unsigned long br=9600, int rx=2, int tx=3);
+
 	int setBaudRate(unsigned long br);
 	int setIOMode(io_mode_t mode);
 	int resetIO(uint8_t *ios=0, uint8_t len=1);
 	int setPulseWidth(uint8_t level);
 	int setAutoLoad(uint8_t *records=0, uint8_t len = 0);
-    int disableAutoLoad();
+  int disableAutoLoad();
 	int restoreSystemSettings();
 	int checkSystemSettings(uint8_t* buf);
 	int recognize(uint8_t *buf, int timeout = VR_DEFAULT_TIMEOUT);
@@ -199,6 +200,12 @@ public:
 	void send_pkt(uint8_t cmd, uint8_t subcmd, uint8_t *buf, uint8_t len);
 	int receive(uint8_t *buf, int len, uint16_t timeout = VR_DEFAULT_TIMEOUT);
 	int receive_pkt(uint8_t *buf, uint16_t timeout = VR_DEFAULT_TIMEOUT);
+
+  // serial interface
+  int read();
+  int available();
+  size_t write(uint8_t byte);
+  size_t write(const uint8_t* buffer, size_t size);
 /***************************************************************************/
 private:
 	static VR*  instance;
